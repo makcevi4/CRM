@@ -1,7 +1,0 @@
-{
-  "choices": {
-    "projects": {"inv":  "investing", "cl":  "cloud solutions", "dr":  "drainer", "ex": "exchanger"},
-    "clients-statuses": ["completed", "conversion", "retention", "rejected"],
-    "workers-types": ["admin", "manager", "conversion", "retention"]
-  }
-}
