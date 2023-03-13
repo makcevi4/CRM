@@ -1,0 +1,21 @@
+{
+  "choices": {
+    "projects": {
+      "investments":  "Инвестиции",
+      "cloud-solutions":  "Облачные решения",
+      "drainer":  "Дрейнер",
+      "exchanger": "Обменник"
+    },
+    "clients-statuses": {
+      "completed": "Отработан",
+      "conversion": "В работе (конверсия)",
+      "retention": "В работе (ретеншн)",
+      "rejected": "Срез"
+    },
+    "workers-types": {
+      "conversion": "Конверсия",
+      "retention": "Ретен"
+    }
+  }
+}
+
