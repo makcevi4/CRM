@@ -13,7 +13,10 @@ env = os.environ
 SECRET_KEY = env['DJANGO_SECRET_KEY']
 
 DEBUG = env['DEBUG']
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.4.33']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.4.33', '192.168.1.113']
+
+# 192.168.4.33 - work (main)
+# 192.168.1.113 - home (main)
 
 # Application definition
 
@@ -67,18 +70,20 @@ WSGI_APPLICATION = 'CRM.wsgi.application'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME':  env['DB_NAME'],
-        'USER': env['DB_USER'],
-        'PASSWORD': env['DB_PASSWORD'],
-        'HOST': env['DB_HOST'],
-        'PORT': env['DB_PORT'],
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
+
+
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME':  env['DB_NAME'],
+    #     'USER': env['DB_USER'],
+    #     'PASSWORD': env['DB_PASSWORD'],
+    #     'HOST': env['DB_HOST'],
+    #     'PORT': env['DB_PORT'],
+    # }
 }
 
 

@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import requests
 
@@ -76,6 +77,12 @@ def download_file(url, filename, filetype=None, filepath='default'):
         image_file.write(response.content)
 
     return f"{filepath}/{file}"
+
+
+def remove_file(file):
+    # print(file)
+    # file.close()
+    return os.remove(f"{BASE_DIR}/{file}")
 
 
 def get_random_data(mode, **kwargs):

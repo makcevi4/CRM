@@ -4,7 +4,7 @@ from rest_framework import generics, views
 from rest_framework.response import Response
 from django.apps import apps
 
-from .utils import get_random_data
+from .utils import get_random_data, remove_file
 from .serializers import *
 from .permissions import *
 
@@ -88,18 +88,20 @@ class CreateRandomObject(views.APIView):
                     for key, value in serialized.data.items():
                         match key:
                             case 'user':
+                                print('--- TEST: ', key, value, sep='\n')
                                 value = model_to_dict(User.objects.get(pk=value))
                             case 'manager':
+                                print('--- TEST: ', key, value, sep='\n')
                                 value = model_to_dict(Manager.objects.get(pk=value))
                             case 'worker' | 'worker_conversion' | 'worker_retention':
-                                print(key, value)
-                                value = model_to_dict(Worker.objects.get(pk=value))
+                                print('--- TEST: ', key, value, sep='\n')
+                                if value:
+                                    value = model_to_dict(Worker.objects.get(pk=value))
 
                         result['data'][key] = value
 
                 if 'photo' in data:
-                    print('dsadasdasdasdasdasdasdasd')
-                    print(data['photo'])
+                    remove_file(data['photo'])
 
             else:
                 result['description'] = "Mode not recognized"
