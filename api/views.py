@@ -1,10 +1,8 @@
-from django.forms import model_to_dict
-from django.shortcuts import render
 from rest_framework import generics, views
 from rest_framework.response import Response
 from django.apps import apps
 
-from .utils import get_random_data, remove_file
+from .utils import *
 from .serializers import *
 from .permissions import *
 
@@ -23,46 +21,36 @@ class CreateRandomObject(views.APIView):
 
                 match mode:
                     case 'manager':
-                        array = get_random_data('user', usertype=mode, data=request.data)
-                        userdata = array['common']
-                        data = array['additional']
-
                         serializer = ManagerSerializer
 
+                        array = get_random_data('user', usertype=mode, data=request.data)
+                        userdata, data = array['common'], array['additional']
+
                     case 'worker':
-                        array = get_random_data('user', usertype=mode, data=request.data,
-                                                managers=Manager.objects.all())
-
-                        userdata = array['common']
-                        data = array['additional']
-
                         serializer = WorkerSerializer
 
+                        array = get_random_data('user', usertype=mode, data=request.data)
+                        userdata, data = array['common'], array['additional']
+
                     case 'client':
-                        workers = {
-                            'conversion': Worker.objects.filter(type='conversion'),
-                            'retention': Worker.objects.filter(type='retention')
-                        }
-
-                        data = get_random_data('user', usertype=mode, data=request.data, workers=workers)
-
                         serializer = ClientSerializer
 
-                    case 'comment':
+                        data = get_random_data('user', usertype=mode, data=request.data)
 
+                    case 'comment':
                         serializer = CommentSerializer
 
-                    case 'deposit':
-                        data = {
+                        data = get_random_data(mode)
 
-                        }
+                    case 'deposit':
                         serializer = DepositSerializer
 
-                    case 'withdraw':
-                        data = {
+                        data = get_random_data(mode)
 
-                        }
+                    case 'withdraw':
                         serializer = WithdrawSerializer
+
+                        data = get_random_data(mode)
 
                 if userdata:
                     user = User(
@@ -79,26 +67,13 @@ class CreateRandomObject(views.APIView):
                 serialized = serializer(data=data)
 
                 if serialized.is_valid(raise_exception=True):
-                    serialized.save()
+                    # serialized.save()
+
+                    print(apps.get_model('api', 'ManagerSerializer'))
 
                     result['status'] = True
                     result['description'] = f"{mode.capitalize()} has been added"
                     result['data'] = dict()
-
-                    for key, value in serialized.data.items():
-                        match key:
-                            case 'user':
-                                print('--- TEST: ', key, value, sep='\n')
-                                value = model_to_dict(User.objects.get(pk=value))
-                            case 'manager':
-                                print('--- TEST: ', key, value, sep='\n')
-                                value = model_to_dict(Manager.objects.get(pk=value))
-                            case 'worker' | 'worker_conversion' | 'worker_retention':
-                                print('--- TEST: ', key, value, sep='\n')
-                                if value:
-                                    value = model_to_dict(Worker.objects.get(pk=value))
-
-                        result['data'][key] = value
 
                 if 'photo' in data:
                     remove_file(data['photo'])

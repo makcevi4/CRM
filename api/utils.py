@@ -1,10 +1,13 @@
 import json
 import os
 import random
+import uuid
+
 import requests
 
 from datetime import date, timedelta
 
+from django.apps import apps
 from django.contrib import admin
 from django.core.files import File
 
@@ -80,9 +83,7 @@ def download_file(url, filename, filetype=None, filepath='default'):
 
 
 def remove_file(file):
-    # print(file)
-    # file.close()
-    return os.remove(f"{BASE_DIR}/{file}")
+    os.remove(f"{BASE_DIR}/temporary/{file}")
 
 
 def get_random_data(mode, **kwargs):
@@ -94,7 +95,10 @@ def get_random_data(mode, **kwargs):
             array = response['results'][0]
             usertype = kwargs.get('usertype')
             data = kwargs.get('data', dict())
-            workers = kwargs.get('workers')
+
+            model_worker = apps.get_model('api.Worker')
+            worker_conversion = model_worker.objects.filter(type='conversion')
+            worker_retention = model_worker.objects.filter(type='retention')
 
             # Client
             if usertype == 'client':
@@ -103,7 +107,7 @@ def get_random_data(mode, **kwargs):
 
                 output = {
                     'name': data.get('name',  f"{array['name']['first']} {array['name']['last']}"),
-                    'photo': File(open(image_file, 'rb')),
+                    'photo': File(open(image_file, 'rb'), name=image_file.replace('temporary/', '')),
                     'birthday': data.get('birthday', date.today() - timedelta(days=array['dob']['age'] * 365)),
                     'status': status,
                     'project': data.get('project', random.choice(get_choices_list('projects')['array'])[0]),
@@ -113,11 +117,11 @@ def get_random_data(mode, **kwargs):
                     'contact_phone': data.get('phone', random.randint(111111111, 999999999999)),
                     'location_city': data.get('city', array['location']['city']),
                     'location_country': data.get('country', array['location']['country']),
-                    'worker_conversion': data.get('conversion', random.choice(workers['conversion']).id)
+                    'worker_conversion': data.get('conversion', random.choice(worker_conversion).pk)
                 }
 
                 if status != 'conversion':
-                    output['worker_retention'] = data.get('conversion', random.choice(workers['conversion']).id)
+                    output['worker_retention'] = data.get('conversion', random.choice(worker_retention).pk)
 
             # Manager and Worker
             elif usertype == 'manager' or usertype == 'worker':
@@ -135,13 +139,14 @@ def get_random_data(mode, **kwargs):
 
                 if usertype == 'worker':
                     random_manager = True
+                    model_manager = apps.get_model('api.Manager')
 
                     output['additional']['type'] = data.get(
                         'type', random.choice(get_choices_list('workers-types')['array'])[0]
                     )
 
                     manager = data.get('manager_id')
-                    managers = kwargs.get('managers')
+                    managers = model_manager.objects.all()
 
                     if manager:
                         try:
@@ -154,15 +159,72 @@ def get_random_data(mode, **kwargs):
                         if managers and bool(random.randbytes(1)):
                             output['additional']['manager'] = random.choice(managers).id
 
+        # Comment
+        case 'comment':
+            model_worker = apps.get_model('api.Worker')
+            model_client = apps.get_model('api.Client')
+
+            response = requests.get(
+                'https://baconipsum.com/api/',
+                params={
+                    'type': 'all-meat',
+                    'paras': random.randint(2, 5),
+                    'start-with-lorem': 1 if bool(random.randbytes(1)) else 0,
+                    'format': 'text'
+                }
+            )
+
+            output = {
+                'client': random.choice(model_client.objects.all()).pk,
+                'worker': random.choice(model_worker.objects.all()).pk,
+                'text': response.text
+            }
+
         # Deposit and Withdraw
         case 'deposit' | 'withdraw':
-            pass
+            model_client = apps.get_model('api.Client')
+
+            output = {
+                'client': random.choice(model_client.objects.all()).pk,
+                'sum': random.randint(10, 100),
+                'description': None if not bool(random.randbytes(1)) else f"random_desc:{str(uuid.uuid4())}"
+            }
 
     return output
 
 
-def recognition_connection_table():
-    pass
+def format_object_data(data):
+    result = dict()
+
+    for key, value in data.items():
+        item_model, item_serializer = None, None
+
+        match key:
+            case 'user':
+
+                # value = model_to_dict(User.objects.get(pk=value))
+                pass
+
+            case 'manager':
+                item_model = apps.get_model('api.Manager')
+                item_serializer = ManagerSerializer
+
+            case 'worker' | 'worker_conversion' | 'worker_retention':
+                if value:
+                    item_model = apps.get_model('api.Worker')
+                    item_serializer = WorkerSerializer
+
+            case 'client':
+                item_model = apps.get_model('api.Client')
+                item_serializer = ClientSerializer
+
+        if item_model and item_serializer:
+            item_object = item_model.objects.get(pk=value)
+            serialized_item = item_serializer(item_object)
+
+            value = serialized_item.data
+
+        result[key] = value
 
 
 def custom_titled_filter(title):

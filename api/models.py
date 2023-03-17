@@ -1,5 +1,3 @@
-import os
-import urllib
 import uuid
 
 from django.db import models
@@ -80,7 +78,7 @@ class Comment(models.Model):
     uid = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4(), unique=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     worker = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    date = models.DateTimeField(auto_created=True)
+    date = models.DateTimeField(auto_now_add=True, blank=True)
     text = models.TextField()
 
     class Meta:
@@ -95,7 +93,7 @@ class Comment(models.Model):
 class Deposit(models.Model):
     uid = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4(), unique=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_created=True)
+    date = models.DateTimeField(auto_now_add=True, blank=True)
     sum = models.FloatField()
     description = models.TextField(blank=True, null=True)
 
@@ -111,7 +109,7 @@ class Deposit(models.Model):
 class Withdraw(models.Model):
     uid = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4(), unique=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_created=True)
+    date = models.DateTimeField(auto_now_add=True, blank=True)
     sum = models.FloatField()
     description = models.TextField(blank=True, null=True)
 

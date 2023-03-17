@@ -13,10 +13,13 @@ env = os.environ
 SECRET_KEY = env['DJANGO_SECRET_KEY']
 
 DEBUG = env['DEBUG']
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.4.33', '192.168.1.113']
 
-# 192.168.4.33 - work (main)
-# 192.168.1.113 - home (main)
+ALLOWED_HOSTS = [
+    '127.0.0.1', 'localhost',
+    '192.168.4.33',         # MAIN: work (lan)
+    '192.168.1.113',        # MAIN: home (wlan:5g)
+    '192.168.28.61',        # MACBOOK: work (wlan:bk5g)
+]
 
 # Application definition
 
