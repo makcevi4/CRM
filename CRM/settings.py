@@ -33,6 +33,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
 
     'api'
 ]
@@ -138,12 +139,17 @@ REST_FRAMEWORK = {
     #     'rest_framework.renderers.JSONRenderer',
     # ],
 
+    'DEFAULT_RENDERER_CLASSES': (
+        'api.renderers.ApiRenderer',
+    ),
+
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication'
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated'
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 5
 }
@@ -188,3 +194,17 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'CRM API Documentation',
+    'DESCRIPTION': 'Documentation for usage CRM API service',
+    'VERSION': '1.0.0',
+    # 'SERVE_INCLUDE_SCHEMA': True,
+    'SERVE_PUBLIC': False,
+    'SERVE_AUTHENTICATION': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication'
+    ],
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'],
+    'DISABLE_ERRORS_AND_WARNINGS': True
+}

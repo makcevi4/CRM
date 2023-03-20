@@ -1,239 +1,196 @@
-import json
-import os
 import random
-import uuid
-
 import requests
 
 from datetime import date, timedelta
 
-from django.apps import apps
-from django.contrib import admin
-from django.core.files import File
+from django.core.files import File as ModelFile
+from django.forms import model_to_dict
+from rest_framework.renderers import JSONRenderer
 
-from CRM.settings import BASE_DIR
+from .serializers import *
+from .handler import get_choices_list
+from .handler import File as FileHandler
 
 
-def local_file(mode, filename, path=None, filetype='json', encoding='utf-8', data=None):
-    filepath = f"{path}/{filename}.{filetype}" if path is not None else f"{filename}.{filetype}"
+class UserData(FileHandler):
+    def __init__(self):
+        super(UserData, self).__init__()
 
-    match mode:
-        case 'write':
-            mode = 'w'
-        case 'load':
-            mode = 'rb'
-        case _:
-            mode = 'r'
+    def random_data(self, mode, **kwargs):
+        output = dict()
 
-    match filename:
-        case 'settings':
-            filepath = BASE_DIR / 'settings.json'
-
-    with open(filepath, mode, encoding=encoding) as file:
         match mode:
-            case 'w':
-                if filetype == 'json':
-                    json.dump(data, file)
-                else:
-                    file.write(data)
+            case 'user':
+                response = requests.get('https://randomuser.me/api/').json()
+                array = response['results'][0]
+                usertype = kwargs.get('usertype')
+                data = kwargs.get('data', dict())
 
-            case 'r':
-                if filetype == 'json':
-                    return json.load(file)
-                else:
-                    return file.read()
+                workers_conversion = Worker.objects.filter(type='conversion')
+                workers_retention = Worker.objects.filter(type='retention')
 
+                # Client
+                if usertype == 'client':
+                    status = data.get('status', random.choice(get_choices_list('clients-statuses')['array'])[0])
+                    image_file = self.download(array['picture']['medium'], array['login']['username'])
 
-def get_choices_list(mode, default=None):
-    array, result = dict(), {'default': None, 'array': list()}
-    data = local_file('read', 'settings')['choices'][mode]
+                    output = {
+                        'name': data.get('name',  f"{array['name']['first']} {array['name']['last']}"),
+                        'photo': ModelFile(open(image_file, 'rb'), name=image_file.replace('temporary/', '')),
+                        'birthday': data.get('birthday', date.today() - timedelta(days=array['dob']['age'] * 365)),
+                        'status': status,
+                        'project': data.get('project', random.choice(get_choices_list('projects')['array'])[0]),
+                        'contact_telegram': data.get('telegram', f"tg_{array['login']['username']}"),
+                        'contact_whatsapp': data.get('whatsapp', f"wa_{array['login']['username']}"),
+                        'contact_discord': data.get('discord', f"ds_{array['login']['username']}"),
+                        'contact_phone': data.get('phone', random.randint(111111111, 999999999999)),
+                        'location_city': data.get('city', array['location']['city']),
+                        'location_country': data.get('country', array['location']['country']),
+                        'worker_conversion': data.get('conversion', random.choice(workers_conversion).pk)
+                    }
 
-    if type(data) == list:
-        for item in data:
-            array[item] = item.capitalize()
+                    if status != 'conversion':
+                        output['worker_retention'] = data.get('conversion', random.choice(workers_retention).pk)
 
-            if default and default == item:
-                result['default'] = (item, item.capitalize())
+                # Manager and Worker
+                elif usertype == 'manager' or usertype == 'worker':
+                    output['common'] = {
+                        'username': data.get('username', array['login']['username']),
+                        'password': data.get('password', array['login']['password'] + array['login']['salt']),
+                        'first_name': data.get('first_name', array['name']['first']),
+                        'last_name': data.get('last_name', array['name']['last']),
+                        'email': data.get('email', array['email']),
+                    }
 
-    elif type(data) == dict:
-        for key, value in data.items():
-            array[key] = value.capitalize()
+                    output['additional'] = {
+                        'telegram': data.get('telegram', f"tg_{array['login']['username']}")
+                    }
 
-            if default and default == key:
-                result['default'] = (key, value.capitalize())
+                    if usertype == 'worker':
+                        random_manager = True
 
-    result['array'] = [(key, value) for key, value in array.items()]
+                        output['additional']['type'] = data.get(
+                            'type', random.choice(get_choices_list('workers-types')['array'])[0]
+                        )
 
-    return result
+                        manager = data.get('manager_id')
+                        managers = Manager.objects.all()
 
+                        if manager:
+                            try:
+                                output['additional']['manager_id'] = managers.objects.get(pk=manager)
+                                random_manager = False
+                            except:
+                                pass
 
-def download_file(url, filename, filetype=None, filepath='default'):
-    filepath = 'temporary' if filepath == 'default' else filepath
-    response = requests.get(url)
+                        if random_manager:
+                            if managers and bool(random.randbytes(1)):
+                                output['additional']['manager'] = random.choice(managers).pk
 
-    if filetype is None:
-        filetype = url.split('/')[-1].split('.')[-1]
+            # Comment
+            case 'comment':
+                workers = Worker.objects.all()
+                clients = Client.objects.all()
 
-    file = f"{filename}.{filetype}"\
-
-    with open(f"{filepath}/{file}", 'wb') as image_file:
-        image_file.write(response.content)
-
-    return f"{filepath}/{file}"
-
-
-def remove_file(file):
-    os.remove(f"{BASE_DIR}/temporary/{file}")
-
-
-def get_random_data(mode, **kwargs):
-    output = dict()
-
-    match mode:
-        case 'user':
-            response = requests.get('https://randomuser.me/api/').json()
-            array = response['results'][0]
-            usertype = kwargs.get('usertype')
-            data = kwargs.get('data', dict())
-
-            model_worker = apps.get_model('api.Worker')
-            worker_conversion = model_worker.objects.filter(type='conversion')
-            worker_retention = model_worker.objects.filter(type='retention')
-
-            # Client
-            if usertype == 'client':
-                status = data.get('status', random.choice(get_choices_list('clients-statuses')['array'])[0])
-                image_file = download_file(array['picture']['medium'], array['login']['username'])
+                response = requests.get(
+                    'https://baconipsum.com/api/',
+                    params={
+                        'type': 'all-meat',
+                        'paras': random.randint(2, 5),
+                        'start-with-lorem': 1 if bool(random.randbytes(1)) else 0,
+                        'format': 'text'
+                    }
+                )
 
                 output = {
-                    'name': data.get('name',  f"{array['name']['first']} {array['name']['last']}"),
-                    'photo': File(open(image_file, 'rb'), name=image_file.replace('temporary/', '')),
-                    'birthday': data.get('birthday', date.today() - timedelta(days=array['dob']['age'] * 365)),
-                    'status': status,
-                    'project': data.get('project', random.choice(get_choices_list('projects')['array'])[0]),
-                    'contact_telegram': data.get('telegram', f"tg_{array['login']['username']}"),
-                    'contact_whatsapp': data.get('whatsapp', f"wa_{array['login']['username']}"),
-                    'contact_discord': data.get('discord', f"ds_{array['login']['username']}"),
-                    'contact_phone': data.get('phone', random.randint(111111111, 999999999999)),
-                    'location_city': data.get('city', array['location']['city']),
-                    'location_country': data.get('country', array['location']['country']),
-                    'worker_conversion': data.get('conversion', random.choice(worker_conversion).pk)
+                    'client': random.choice(clients).pk,
+                    'worker': random.choice(workers).pk,
+                    'text': response.text
                 }
 
-                if status != 'conversion':
-                    output['worker_retention'] = data.get('conversion', random.choice(worker_retention).pk)
+            # Deposit and Withdraw
+            case 'deposit' | 'withdraw':
+                clients = Client.objects.all()
 
-            # Manager and Worker
-            elif usertype == 'manager' or usertype == 'worker':
-                output['common'] = {
-                    'username': data.get('username', array['login']['username']),
-                    'password': data.get('password', array['login']['password'] + array['login']['salt']),
-                    'first_name': data.get('first_name', array['name']['first']),
-                    'last_name': data.get('last_name', array['name']['last']),
-                    'email': data.get('email', array['email']),
+                output = {
+                    'client': random.choice(clients).pk,
+                    'sum': random.randint(10, 100),
+                    'description': None if not bool(random.randbytes(1)) else f"random_desc:{str(uuid.uuid4())}"
                 }
 
-                output['additional'] = {
-                    'telegram': data.get('telegram', f"tg_{array['login']['username']}")
-                }
+        return output
 
-                if usertype == 'worker':
-                    random_manager = True
-                    model_manager = apps.get_model('api.Manager')
+    @staticmethod
+    def format_object(data):
+        result = dict()
 
-                    output['additional']['type'] = data.get(
-                        'type', random.choice(get_choices_list('workers-types')['array'])[0]
-                    )
+        for key, value in data.items():
+            item_model, item_serializer = None, None
+    
+            match key:
+                case 'user':
+                    item_model = User
+                    item_serializer = UserSerializer
 
-                    manager = data.get('manager_id')
-                    managers = model_manager.objects.all()
+                case 'manager':
+                    item_model = Manager
+                    item_serializer = ManagerSerializer
+    
+                case 'worker' | 'worker_conversion' | 'worker_retention':
+                    if value:
+                        item_model = Worker
+                        item_serializer = WorkerSerializer
+    
+                case 'client':
+                    item_model = Client
+                    item_serializer = ClientSerializer
 
-                    if manager:
-                        try:
-                            output['additional']['manager_id'] = managers.objects.get(pk=manager)
-                            random_manager = False
-                        except:
-                            pass
+            if item_model and item_serializer:
+                item_object = item_model.objects.get(pk=value)
+                serialized_item = item_serializer(item_object)
+    
+                value = serialized_item.data
+    
+            result[key] = value
 
-                    if random_manager:
-                        if managers and bool(random.randbytes(1)):
-                            output['additional']['manager'] = random.choice(managers).id
+        return result
 
-        # Comment
-        case 'comment':
-            model_worker = apps.get_model('api.Worker')
-            model_client = apps.get_model('api.Client')
+    @staticmethod
+    def field_recognition(request, model):
+        result = {}
 
-            response = requests.get(
-                'https://baconipsum.com/api/',
-                params={
-                    'type': 'all-meat',
-                    'paras': random.randint(2, 5),
-                    'start-with-lorem': 1 if bool(random.randbytes(1)) else 0,
-                    'format': 'text'
-                }
-            )
+        for field, value in request.data.items():
+            if field in model_to_dict(model).keys():
+                result[field] = value
 
-            output = {
-                'client': random.choice(model_client.objects.all()).pk,
-                'worker': random.choice(model_worker.objects.all()).pk,
-                'text': response.text
-            }
+        if request.method == 'PATCH':
+            for key, value in model_to_dict(model).items():
+                if key not in result:
+                    result[key] = value
 
-        # Deposit and Withdraw
-        case 'deposit' | 'withdraw':
-            model_client = apps.get_model('api.Client')
+        return result
 
-            output = {
-                'client': random.choice(model_client.objects.all()).pk,
-                'sum': random.randint(10, 100),
-                'description': None if not bool(random.randbytes(1)) else f"random_desc:{str(uuid.uuid4())}"
-            }
+    @staticmethod
+    def fields_validation(fields, serializer):
+        response = {'status': False, 'errors': 'Something error', 'description': None, 'data': {}}
 
-    return output
+        if fields:
+            if serializer.is_valid():
+                response['status'] = True
+                response['additional'] = 'Has been updated %s'
+            else:
+                i = 0
+                response['description'] = str()
 
+                for error, error_detail in serializer.errors.items():
+                    response['description'] += f"{error} - {str(error_detail[0])}" \
+                                               f"{',' if i < len(serializer.errors.keys()) - 1 else ''}"
+                    i += 1
+        else:
+            response['status'] = True
+            response['description'] = 'No updates for %s'
 
-def format_object_data(data):
-    result = dict()
-
-    for key, value in data.items():
-        item_model, item_serializer = None, None
-
-        match key:
-            case 'user':
-
-                # value = model_to_dict(User.objects.get(pk=value))
-                pass
-
-            case 'manager':
-                item_model = apps.get_model('api.Manager')
-                item_serializer = ManagerSerializer
-
-            case 'worker' | 'worker_conversion' | 'worker_retention':
-                if value:
-                    item_model = apps.get_model('api.Worker')
-                    item_serializer = WorkerSerializer
-
-            case 'client':
-                item_model = apps.get_model('api.Client')
-                item_serializer = ClientSerializer
-
-        if item_model and item_serializer:
-            item_object = item_model.objects.get(pk=value)
-            serialized_item = item_serializer(item_object)
-
-            value = serialized_item.data
-
-        result[key] = value
-
-
-def custom_titled_filter(title):
-    class Wrapper(admin.FieldListFilter):
-        def __new__(cls, *args, **kwargs):
-            instance = admin.FieldListFilter.create(*args, **kwargs)
-            instance.title = title
-            return instance
-    return Wrapper
+        return response
 
 
 

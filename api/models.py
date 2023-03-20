@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 
-from .utils import get_choices_list
+from .handler import get_choices_list
 
 
 class Manager(models.Model):

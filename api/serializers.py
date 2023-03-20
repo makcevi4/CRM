@@ -9,9 +9,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ManagerSerializer(serializers.ModelSerializer):
+    user_info = UserSerializer(many=True, read_only=True)
+
     class Meta:
         model = Manager
         fields = '__all__'
+        depth = 1
 
 
 class WorkerSerializer(serializers.ModelSerializer):

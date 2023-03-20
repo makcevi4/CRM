@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.safestring import mark_safe
 
 from .models import *
-from .utils import custom_titled_filter
+from .handler import custom_titled_filter
 
 
 class ManagerAdmin(admin.ModelAdmin):
@@ -44,8 +44,8 @@ class ClientAdmin(admin.ModelAdmin):
     save_on_top = True
 
     def get_html_avatar(self, data):
-        if data.image:
-            return mark_safe(f"<img src='{data.image.url}' width=50>")
+        if data.photo:
+            return mark_safe(f"<img src='{data.photo.url}' width=50>")
 
 
 class CommentAdmin(admin.ModelAdmin):
