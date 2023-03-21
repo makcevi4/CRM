@@ -5,21 +5,9 @@ from .models import *
 from .handler import custom_titled_filter
 
 
-class ManagerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', )
-    list_display_links = ('id', 'user')
-    search_fields = ('user',)
-    readonly_fields = ('id', 'user', 'updated')
-
-
-class WorkerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user',)
-    list_display_links = ('id', 'user')
-    list_filter = (
-        ('manager', custom_titled_filter('Управляющий')),
-    )
-    search_fields = ('user',)
-    readonly_fields = ('id', 'user', 'updated')
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('username',)
+    list_display_links = ('username',)
 
 
 class ClientAdmin(admin.ModelAdmin):
@@ -82,8 +70,7 @@ class WithdrawAdmin(admin.ModelAdmin):
     # readonly_fields = ('id', 'uid')
 
 
-admin.site.register(Manager, ManagerAdmin)
-admin.site.register(Worker, WorkerAdmin)
+admin.site.register(User, UserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(Comment, CommentAdmin)
 admin.site.register(Deposit, DepositAdmin)

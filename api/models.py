@@ -1,41 +1,17 @@
 import uuid
 
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 
 from .handler import get_choices_list
 
 
-class Manager(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, unique=True)
-    telegram = models.CharField(max_length=25, blank=True, null=True)
-
-    updated = models.DateTimeField(auto_now=True, editable=False)
-
-    class Meta:
-        verbose_name = "управляющего"
-        verbose_name_plural = "Управляющие"
+class User(AbstractUser):
+    telegram = models.CharField(max_length=50, null=True, blank=True)
+    manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.id} {self.user.username}"
-
-
-class Worker(models.Model):
-    TYPES = get_choices_list('workers-types')
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, unique=True)
-    manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True)
-    telegram = models.CharField(max_length=25, blank=True, null=True)
-    type = models.CharField(max_length=25, choices=TYPES['array'])
-
-    updated = models.DateTimeField(auto_now=True, editable=False)
-
-    class Meta:
-        verbose_name = "рабочего"
-        verbose_name_plural = "Рабочие"
-
-    def __str__(self):
-        return f"{self.id} {self.user.username}"
+        return self.username
 
 
 class Client(models.Model):
@@ -48,17 +24,15 @@ class Client(models.Model):
     status = models.CharField(max_length=25, choices=STATUSES['array'], default=STATUSES['default'])
     project = models.CharField(max_length=100, choices=PROJECTS['array'])
 
-    worker_conversion = models.ForeignKey(
-        Worker, on_delete=models.PROTECT, related_name='conversion')
-    worker_retention = models.ForeignKey(
-        Worker, on_delete=models.PROTECT, null=True, blank=True, related_name='retention')
+    worker_conversion = models.ForeignKey(User, on_delete=models.PROTECT, related_name='conversion')
+    worker_retention = models.ForeignKey(User, on_delete=models.PROTECT,  related_name='retention',
+                                         null=True, blank=True)
 
     contact_telegram = models.CharField(max_length=50, blank=True, null=True)
     contact_whatsapp = models.CharField(max_length=50, blank=True, null=True)
     contact_discord = models.CharField(max_length=50, blank=True, null=True)
     contact_phone = models.BigIntegerField(blank=True, null=True)
 
-    # location_ip = models.IPAddressField()
     location_city = models.CharField(max_length=100)
     location_country = models.CharField(max_length=100)
 

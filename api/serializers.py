@@ -2,31 +2,34 @@ from rest_framework import serializers
 from .models import *
 
 
-class UserSerializer(serializers.ModelSerializer):
+class ManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
-
-
-class ManagerSerializer(serializers.ModelSerializer):
-    user_info = UserSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Manager
-        fields = '__all__'
-        depth = 1
+        fields = (
+            'username',
+            'password',
+            'telegram'
+        )
 
 
 class WorkerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Worker
-        fields = '__all__'
+        model = User
+        fields = (
+            'username',
+            'password',
+            'telegram',
+            'manager'
+        )
 
 
 class ClientSerializer(serializers.ModelSerializer):
+    worker = WorkerSerializer(many=True, read_only=True)
+
     class Meta:
         model = Client
         fields = '__all__'
+        depth = 1
 
 
 class CommentSerializer(serializers.ModelSerializer):

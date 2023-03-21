@@ -49,6 +49,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'CRM.urls'
+AUTH_USER_MODEL = 'api.User'
 
 TEMPLATES = [
     {

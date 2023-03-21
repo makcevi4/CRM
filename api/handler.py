@@ -7,7 +7,7 @@ from django.contrib import admin
 from CRM.settings import BASE_DIR
 
 
-class File:
+class FileHandler:
     @staticmethod
     def local(mode, filename, path=None, filetype='json', encoding='utf-8', data=None):
         filepath = f"{path}/{filename}.{filetype}" if path is not None else f"{filename}.{filetype}"
@@ -63,7 +63,7 @@ class File:
 
 def get_choices_list(mode, default=None):
     array, result = dict(), {'default': None, 'array': list()}
-    data = File.local('read', 'settings')['choices'][mode]
+    data = FileHandler.local('read', 'settings')['choices'][mode]
 
     if type(data) == list:
         for item in data:
