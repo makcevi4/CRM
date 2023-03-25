@@ -61,7 +61,7 @@ class FileHandler:
             pass
 
 
-def get_choices_list(mode, default=None):
+def get_choices_list(mode, default=None, json_parse=False):
     array, result = dict(), {'default': None, 'array': list()}
     data = FileHandler.local('read', 'settings')['choices'][mode]
 
@@ -79,7 +79,7 @@ def get_choices_list(mode, default=None):
             if default and default == key:
                 result['default'] = (key, value.capitalize())
 
-    result['array'] = [(key, value) for key, value in array.items()]
+    result['array'] = data if json_parse else [(key, value) for key, value in array.items()]
 
     return result
 

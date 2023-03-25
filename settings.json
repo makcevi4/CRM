@@ -12,10 +12,30 @@
       "retention": "В работе (ретеншн)",
       "rejected": "Срез"
     },
+    "staff-roles": {
+      "admin": "Администратор",
+      "app": "Приложение",
+      "manager": "Управляющий",
+      "worker": "Рабочий"
+    },
     "workers-types": {
       "conversion": "Конверсия",
       "retention": "Ретен"
     }
+  },
+  "permissions": {
+    "Manager": [
+      "list_workers",
+      "detail_worker",
+      "update_wor"
+    ],
+    "Conversion": [
+      "view_clients",
+      "view_"
+    ],
+    "Retention": [
+
+    ]
   }
 }
 

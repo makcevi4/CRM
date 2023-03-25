@@ -8,12 +8,12 @@ from .views import *
 
 
 router = SimpleRouter()
-# # router.register(r'managers', ManagerViewSet)
-# # router.register(r'workers', WorkerViewSet)
-# router.register(r'clients', ClientViewSet)
-# router.register(r'comments', CommentViewSet)
-# router.register(r'deposits', DepositViewSet)
-# router.register(r'withdraws', WithdrawViewSet)
+router.register(r'managers', ManagerViewSet)
+router.register(r'workers', WorkerViewSet)
+
+
+print(router.urls)
+
 
 urlpatterns = [
     # Auth
@@ -26,16 +26,12 @@ urlpatterns = [
     path('documentation/redoc/', SpectacularRedocView.as_view(url_name='documentation'), name='documentation-redoc'),
 
     # General
-    path('users/manager/', ListManagersView.as_view(), name='list_managers_all'),
-    path('users/manager/<int:pk>/', DetailManagersView.as_view(), name='list_managers_all'),
-
-
-    # path('', include(router.urls)),
+    # - Managers
+    path('', include(router.urls), name='name'),
 
 
     # --- TEMPORARY --- #
-    # path('random/create/<str:mode>/', CreateRandomObject.as_view(), name='create-random-object'),
-
+    path('random/create/<str:mode>/', CreateRandomObject.as_view(), name='create-random-object'),
 
 ]
 

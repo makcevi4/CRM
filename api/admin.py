@@ -6,17 +6,27 @@ from .handler import custom_titled_filter
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('username',)
+    list_display = ('pk', 'id', 'username', 'role')
     list_display_links = ('username',)
+
+    list_filter = (
+        ('role', custom_titled_filter('Тип пользователя')),
+        ('date_joined', custom_titled_filter('Регистрация')),
+        ('last_login', custom_titled_filter('Последний вход')),
+        ('groups', custom_titled_filter('Группы')),
+    )
+    search_fields = ('username',)
+    readonly_fields = ('role', 'date_joined', 'last_login')
+
+    save_on_top = True
 
 
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'get_html_avatar', 'project', 'status', 'location_country')
+    list_display = ('id', 'name', 'picture', 'project', 'status', 'location_country')
     list_display_links = ('id', 'name', 'project')
     list_filter = (
-        ('worker_conversion', custom_titled_filter('Конверсия')),
-        ('worker_retention', custom_titled_filter('Ретеншн')),
         ('project', custom_titled_filter('Проект')),
+        ('status', custom_titled_filter('Статус')),
         ('registration', custom_titled_filter('Дата регистрации')),
         ('updated', custom_titled_filter('Дата обновления'))
     )
@@ -31,23 +41,22 @@ class ClientAdmin(admin.ModelAdmin):
 
     save_on_top = True
 
-    def get_html_avatar(self, data):
+    def picture(self, data):
         if data.photo:
             return mark_safe(f"<img src='{data.photo.url}' width=50>")
 
 
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ('uid', 'client')
-    list_display_links = ('uid', 'client')
+    list_display = ('uid', 'client', 'worker')
+    list_display_links = ('uid',)
     list_filter = (
         ('date', custom_titled_filter('Дата создания')),
     )
     search_fields = ('client', 'worker')
-    # readonly_fields = ('id', )
 
 
 class DepositAdmin(admin.ModelAdmin):
-    list_display = ('uid', 'date', 'sum')
+    list_display = ('uid', 'date', 'sum', 'client')
     list_display_links = ('uid',)
     list_filter = (
         ('client', custom_titled_filter('Клиент')),
@@ -55,11 +64,10 @@ class DepositAdmin(admin.ModelAdmin):
     )
     list_editable = ('sum',)
     search_fields = ('id', 'uid', 'client')
-    # readonly_fields = ('id', 'uid')
 
 
 class WithdrawAdmin(admin.ModelAdmin):
-    list_display = ('uid', 'date', 'sum')
+    list_display = ('uid', 'date', 'sum', 'client')
     list_display_links = ('uid',)
     list_filter = (
         ('client', custom_titled_filter('Клиент')),
@@ -67,7 +75,6 @@ class WithdrawAdmin(admin.ModelAdmin):
     )
     list_editable = ('sum',)
     search_fields = ('id', 'uid', 'client')
-    # readonly_fields = ('id', 'uid')
 
 
 admin.site.register(User, UserAdmin)

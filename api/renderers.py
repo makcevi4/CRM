@@ -1,10 +1,12 @@
 from rest_framework.renderers import JSONRenderer
+from .utils import RendererMixin
 
 
-class ApiRenderer(JSONRenderer):
+class ApiRenderer(JSONRenderer, RendererMixin):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         request = renderer_context['request']
         response = renderer_context['response']
+        kwargs = renderer_context['kwargs']
 
         result = {
             'status': False,
@@ -24,25 +26,23 @@ class ApiRenderer(JSONRenderer):
                     result['status'] = True
                     result['data'] = data
 
-                    print(renderer_context['request'].method)
-
                     match request.method:
                         case 'GET':
-                            pk = renderer_context['kwargs'].get('pk')
-
-                            result['description'] = f"Item{'' if pk else 's'} received successfully"
+                            item = self.get_item(request, **kwargs)
+                            result['description'] = f"{item.capitalize()} received successfully"
 
                         case 'PUT' | 'PATCH':
                             if request.data:
-                                i = 1
-                                items = [request.data.keys()[0]] \
+                                item, i = self.get_item(request, **kwargs), 1
+
+                                updates = [request.data.keys()[0]] \
                                     if len(request.data.keys()) < 1 \
                                     else [i for i in request.data.keys()]
 
-                                description = "Success updated: "
+                                description = f"New updates for {item.capitalize()}: "
 
-                                for item in items:
-                                    description += f"{item}, " if i < len(items) else item
+                                for update in updates:
+                                    description += f"{update}, " if i < len(updates) else update
 
                                     i += 1
 
@@ -50,11 +50,22 @@ class ApiRenderer(JSONRenderer):
                             else:
                                 result['description'] = "Nothing has been updated"
 
+            case 201:
+                item = self.get_item(request, **kwargs)
 
+                result['status'] = True
+                result['description'] = f"{item.capitalize()} has been added successfully"
+                result['data'] = data
 
+            case 204:
+                item = self.get_item(request, **kwargs)
+
+                result['status'] = True
+                result['description'] = f"{item.capitalize()} has been deleted successfully"
+                # print(data)
 
             case _:
-                result['description'] = data.get('detail')
+                result['description'] = self.get_error(data)
 
         data = result
 
