@@ -10,9 +10,7 @@ from .views import *
 router = SimpleRouter()
 router.register(r'managers', ManagerViewSet)
 router.register(r'workers', WorkerViewSet)
-
-
-print(router.urls)
+router.register(r'clients', ClientViewSet)
 
 
 urlpatterns = [
@@ -26,7 +24,7 @@ urlpatterns = [
     path('documentation/redoc/', SpectacularRedocView.as_view(url_name='documentation'), name='documentation-redoc'),
 
     # General
-    # - Managers
+    # - Managers, Workers, Clients
     path('', include(router.urls), name='name'),
 
 

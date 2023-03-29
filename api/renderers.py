@@ -1,5 +1,6 @@
 from rest_framework.renderers import JSONRenderer
 from .utils import RendererMixin
+from .handler import get_choices_list
 
 
 class ApiRenderer(JSONRenderer, RendererMixin):
@@ -16,9 +17,9 @@ class ApiRenderer(JSONRenderer, RendererMixin):
 
         match response.status_code:
             case 200:
-                custom_data = data.get('status')
+                status = data.get('status')
 
-                if custom_data is not None:
+                if status is not None and type(status) is bool:
                     result['status'] = data.get('status')
                     result['description'] = data.get('description')
                     result['data'] = data.get('data')
@@ -62,7 +63,6 @@ class ApiRenderer(JSONRenderer, RendererMixin):
 
                 result['status'] = True
                 result['description'] = f"{item.capitalize()} has been deleted successfully"
-                # print(data)
 
             case _:
                 result['description'] = self.get_error(data)

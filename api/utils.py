@@ -11,6 +11,127 @@ from .permissions import *
 from .handler import FileHandler, get_choices_list
 
 
+class ViewSetMixin:
+    @staticmethod
+    def recognize_serializer(model, action, user):
+        serializer = None
+
+        match model:
+            case 'worker':
+                serializer = WorkerSerializer
+
+                match action:
+                    case 'list' | 'retrieve':
+                        if user == 'manager':
+                            serializer = ManagerWorkersSerializer
+                    case 'create':
+                        serializer = WorkerCreationSerializer
+
+            case 'client':
+                serializer = ClientSerializer
+
+                match action:
+                    case 'create' | 'update' | 'partial_update':
+                        if user == 'worker':
+                            serializer = ClientCreateOrUpdateByWorkerSerializer
+
+        print(f"---\nmethod:recognize_serializer:\naction:{action}\nserializer:{serializer}\n---")
+        return serializer
+
+    @staticmethod
+    def recognize_permissions(model, action):
+        permissions = None
+
+        match model:
+            case 'manager':
+                permissions = [IsAdmin | IsCurrentUser]
+
+                match action:
+                    case 'list' | 'create' | 'destroy':
+                        permissions = [IsAdmin]
+
+                    case 'workers' | 'comments':
+                        permissions = [IsAdmin | ActionCurrentManager]
+
+            case 'worker':
+                permissions = [IsAdmin | IsManager]
+
+                match action:
+                    case 'retrieve':
+                        permissions = [IsAdmin | IsCurrentUser | IsCurrentManager]
+                    case 'create' | 'destroy':
+                        permissions = [IsAdmin]
+                    case 'update' | 'partial_update':
+                        permissions = [IsAdmin | IsCurrentUser]
+
+                    case 'manager':
+                        permissions = [IsAdmin | ActionCurrentWorker]
+                    case 'clients' | 'comments' | 'update_password':
+                        permissions = [IsAdmin | ActionCurrentWorker | ActionCurrentManager]
+
+            case 'client':
+                permissions = [IsAdmin | IsManager | IsWorker]
+
+                match action:
+                    case 'retrieve' | 'update' | 'partial_update':
+                        permissions = [IsAdmin | IsCurrentManager | IsCurrentWorker]
+                    case 'destroy':
+                        permissions = [IsAdmin]
+
+                    case 'comments' | 'deposits' | 'withdraws':
+                        permissions = [IsAdmin | ActionCurrentManager | ActionCurrentWorker]
+                    case 'workers':
+                        permissions = [IsAdmin | ActionCurrentManager]
+
+        print(f"---\nmethod:recognize_permissions\naction:{action}\npermissions:{permissions}\n---")
+        return permissions
+
+    @staticmethod
+    def recognize_user_type(user):
+        try:
+            return user.groups.all()[0].name.lower()
+        except KeyError:
+            return 'admin'
+
+
+class RendererMixin:
+    @staticmethod
+    def get_error(data):
+        detail = data.get('detail')
+
+        if detail:
+            result = detail
+        else:
+            i, result = 1, str()
+
+            for field, error in data.items():
+                result += f"{field} - {error[0]} "
+
+        return result
+
+    @staticmethod
+    def get_item(request, **kwargs):
+        result = 'item'
+
+        roles_list = list(get_choices_list('staff-roles', json_parse=True)['array'].keys())
+        models_list = [model.__name__.lower() for model in apps.get_models()]
+        triggers = roles_list + models_list
+
+        mode = [item for item in request.path.split('/') if item != ''][1]
+
+        if mode.endswith('s'):
+            mode = mode[:-1]
+
+        if mode in triggers:
+            match request.method:
+                case 'GET':
+                    result = mode if kwargs.get('pk') else f"{mode}s"
+                case _:
+                    result = mode
+
+        return result
+
+
 class RandomDataMixin(FileHandler):
     def __init__(self):
         super(RandomDataMixin, self).__init__()
@@ -252,105 +373,5 @@ class RandomDataMixin(FileHandler):
                         return "No clients"
 
                 result = client
-
-        return result
-    # @staticmethod
-    # def format_object(data):
-    #     result = dict()
-    #
-    #     for key, value in data.items():
-    #         item_model, item_serializer = None, None
-    #
-    #         match key:
-    #             case 'user':
-    #                 item_model = User
-    #                 item_serializer = UserSerializer
-    #
-    #             case 'client':
-    #                 item_model = Client
-    #                 item_serializer = ClientSerializer
-    #
-    #         if item_model and item_serializer:
-    #             item_object = item_model.objects.get(pk=value)
-    #             serialized_item = item_serializer(item_object)
-    #
-    #             value = serialized_item.data
-    #
-    #         result[key] = value
-    #
-    #     return result
-
-
-class ViewSetMixin:
-    def recognize_serializer(self, model, action, user):
-        serializer = None
-
-        match model:
-            case 'worker':
-                serializer = WorkerSerializer
-
-                match action:
-                    case 'list' | 'retrieve':
-                        if user == 'manager':
-                            serializer = ManagerWorkersSerializer
-                    case 'create':
-                        serializer = WorkerCreationSerializer
-        print(f"recognize_serializer:\naction:{action}\nserializer:{serializer}")
-        return serializer
-
-    def recognize_permissions(self, model, action):
-        permissions = None
-
-        match model:
-            case 'worker':
-                permissions = [IsAdmin | IsManager]
-
-                print(action)
-                match action:
-                    case 'retrieve':
-                        permissions = [IsAdmin | IsCurrentUser | IsCurrentManager]
-                    case 'create' | 'destroy':
-                        permissions = [IsAdmin]
-                    case 'update' | 'partial_update':
-                        permissions = [IsAdmin | IsCurrentUser]
-
-        print(f"recognize_permissions:\naction:{action}\npermissions:{permissions}")
-        return permissions
-
-
-class RendererMixin:
-    @staticmethod
-    def get_error(data):
-        detail = data.get('detail')
-
-        if detail:
-            result = detail
-        else:
-            i, result = 1, str()
-
-            for field, error in data.items():
-                result += f"{field} - {error[0]} "
-
-        return result
-
-    @staticmethod
-    def get_item(request, **kwargs):
-        result = 'item'
-
-        roles_list = list(get_choices_list('staff-roles', json_parse=True)['array'].keys())
-        models_list = [model.__name__.lower() for model in apps.get_models()]
-        triggers = roles_list + models_list
-
-        mode = [item for item in request.path.split('/') if item != ''][1]
-
-        if mode.endswith('s'):
-            mode = mode[:-1]
-
-        if mode in triggers:
-            match request.method:
-                case 'GET':
-                    result = mode if kwargs.get('pk') else f"{mode}s"
-                case _:
-                    result = mode
 
         return result

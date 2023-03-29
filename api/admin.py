@@ -6,7 +6,7 @@ from .handler import custom_titled_filter
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'id', 'username', 'role')
+    list_display = ('id', 'username', 'role')
     list_display_links = ('username',)
 
     list_filter = (
@@ -15,7 +15,7 @@ class UserAdmin(admin.ModelAdmin):
         ('last_login', custom_titled_filter('Последний вход')),
         ('groups', custom_titled_filter('Группы')),
     )
-    search_fields = ('username',)
+    search_fields = ('id', 'username')
     readonly_fields = ('role', 'date_joined', 'last_login')
 
     save_on_top = True
@@ -47,12 +47,12 @@ class ClientAdmin(admin.ModelAdmin):
 
 
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ('uid', 'client', 'worker')
+    list_display = ('uid', 'client', 'staff')
     list_display_links = ('uid',)
     list_filter = (
         ('date', custom_titled_filter('Дата создания')),
     )
-    search_fields = ('client', 'worker')
+    search_fields = ('client', 'staff')
 
 
 class DepositAdmin(admin.ModelAdmin):

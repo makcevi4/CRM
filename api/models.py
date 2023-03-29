@@ -66,7 +66,7 @@ class Client(models.Model):
 class Comment(models.Model):
     uid = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    worker = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    staff = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     date = models.DateTimeField(auto_now_add=True, blank=True)
     text = models.TextField()
 
