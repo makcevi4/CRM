@@ -47,7 +47,6 @@ class ViewSetMixin:
             case 'withdraw':
                 serializer = WithdrawSerializer
 
-        print(f"---\nmethod:recognize_serializer:\naction:{action}\nserializer:{serializer}\n---")
         return serializer
 
     @staticmethod
@@ -104,7 +103,6 @@ class ViewSetMixin:
                     case 'update' | 'partial_update' | 'destroy':
                         permissions = [IsAdmin]
 
-        print(f"---\nmethod:recognize_permissions\naction:{action}\npermissions:{permissions}\n---")
         return permissions
 
     @staticmethod

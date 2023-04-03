@@ -54,9 +54,9 @@ class FileHandler:
         return f"{filepath}/{file}"
 
     @staticmethod
-    def remove_temporary_file(file):
+    def remove_temporary_file(obj):
         try:
-            os.remove(f"{BASE_DIR}/temporary/{file}")
+            os.remove(f"{BASE_DIR}/{obj.file.name}")
         except PermissionError:
             pass
 

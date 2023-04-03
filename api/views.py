@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
 from rest_framework import views, viewsets
 from rest_framework.decorators import action
-# from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from .serializers import *
@@ -519,6 +518,9 @@ class CreateRandomObject(views.APIView, RandomDataMixin):
 
                 user = User.objects.get(username=serializer.data['username'])
                 user.groups.add(group)
+
+            if 'photo' in data['data']:
+                self.remove_temporary_file(data['data']['photo'])
 
             result['status'] = True
             result['description'] = f"{mode.capitalize()} has been added successfully"
