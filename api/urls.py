@@ -11,6 +11,9 @@ router = SimpleRouter()
 router.register(r'managers', ManagerViewSet)
 router.register(r'workers', WorkerViewSet)
 router.register(r'clients', ClientViewSet)
+router.register(r'comments', CommentViewSet)
+router.register(r'deposits', DepositViewSet)
+router.register(r'withdraws', WithdrawViewSet)
 
 
 urlpatterns = [

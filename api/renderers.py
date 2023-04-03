@@ -40,7 +40,7 @@ class ApiRenderer(JSONRenderer, RendererMixin):
                                     if len(request.data.keys()) < 1 \
                                     else [i for i in request.data.keys()]
 
-                                description = f"New updates for {item.capitalize()}: "
+                                description = f"New updates for {item}: "
 
                                 for update in updates:
                                     description += f"{update}, " if i < len(updates) else update

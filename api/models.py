@@ -28,7 +28,7 @@ class Client(models.Model):
     name = models.CharField(max_length=100)
     photo = models.ImageField(upload_to='images/clients/%Y/%m/', blank=True, null=True)
     birthday = models.DateField(blank=True, null=True)
-    status = models.CharField(max_length=25, choices=STATUSES['array'], default=STATUSES['default'])
+    status = models.CharField(max_length=25, choices=STATUSES['array'], default=STATUSES['default'][0])
     project = models.CharField(max_length=100, choices=PROJECTS['array'], null=True, blank=True)
 
     worker_conversion = models.ForeignKey(User, on_delete=models.PROTECT, related_name='conversion')

@@ -35,6 +35,18 @@ class ViewSetMixin:
                         if user == 'worker':
                             serializer = ClientCreateOrUpdateByWorkerSerializer
 
+            case 'comment':
+                serializer = CommentSerializer
+
+                if action != 'create' and (user.role == 'manager' or user.role == 'worker'):
+                    serializer = CommentStaffSerializer
+
+            case 'deposit':
+                serializer = DepositSerializer
+
+            case 'withdraw':
+                serializer = WithdrawSerializer
+
         print(f"---\nmethod:recognize_serializer:\naction:{action}\nserializer:{serializer}\n---")
         return serializer
 
@@ -82,6 +94,15 @@ class ViewSetMixin:
                         permissions = [IsAdmin | ActionCurrentManager | ActionCurrentWorker]
                     case 'workers':
                         permissions = [IsAdmin | ActionCurrentManager]
+
+            case 'comment' | 'deposit' | 'withdraw':
+                permissions = [IsAdmin | IsManager | IsWorker]
+
+                match action:
+                    case 'list' | 'retrieve':
+                        permissions = [IsAdmin | IsCurrentManager | IsCurrentWorker]
+                    case 'update' | 'partial_update' | 'destroy':
+                        permissions = [IsAdmin]
 
         print(f"---\nmethod:recognize_permissions\naction:{action}\npermissions:{permissions}\n---")
         return permissions
@@ -222,10 +243,10 @@ class RandomDataMixin(FileHandler):
 
             # Comment
             case 'comment':
-                worker = self.additional_data('random_worker', data)
-                if type(worker) is str:
+                staff = self.additional_data('random_staff_user', data)
+                if type(staff) is str:
                     response['status'] = False
-                    response['description'] = worker
+                    response['description'] = staff
                     return response
 
                 client = self.additional_data('client', data)
@@ -246,13 +267,14 @@ class RandomDataMixin(FileHandler):
 
                 response['data'] = {
                     'client': client,
-                    'worker': worker,
+                    'staff': staff,
                     'text': text_data.text
                 }
 
             # Deposit and Withdraw
             case 'deposit' | 'withdraw':
                 client = self.additional_data('client', data)
+
                 if type(client) is str:
                     response['status'] = False
                     response['description'] = client
@@ -326,32 +348,29 @@ class RandomDataMixin(FileHandler):
 
                 result = item
 
-            case 'random_worker':
-                worker = data.get('worker')
+            case 'random_staff_user':
+                user = data.get('staff')
 
-                if worker:
+                if user:
                     try:
-                        worker = User.objects.get(
-                            Q(pk=worker) if worker.isdigit() else Q(username=worker) &
-                            Q(role='worker') &
-                            (Q(groups__name='Conversion') | Q(groups__name='Retention'))
-                        )
+                        user = User.objects.get(
+                            Q(pk=user) if user.isdigit() else Q(username=user) &
+                            (Q(role='manager') | Q(role='worker')) &
+                            (Q(groups__name='Managers') | Q(groups__name='Conversion') | Q(groups__name='Retention'))
+                        ).pk
 
                     except User.DoesNotExist:
-                        return "Worker not found"
+                        return "Staff user not found"
 
                 else:
-                    workers = User.objects.filter(
-                        Q(role='worker') &
-                        (Q(groups__name='Conversion') | Q(groups__name='Retention'))
-                    )
+                    users = User.objects.all()
 
-                    if len(workers):
-                        worker = random.choice(workers).pk
+                    if len(users):
+                        user = random.choice(users).pk
                     else:
-                        return "No workers"
+                        return "No staff users"
 
-                result = worker
+                result = user
 
             case 'client':
                 client = data.get('client')

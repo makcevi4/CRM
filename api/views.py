@@ -1,11 +1,7 @@
-import requests
-
-from django.apps import apps
-from django.contrib.auth.models import Group
-from django.db.models import Q
-from django.forms import model_to_dict
-from rest_framework import generics, views, viewsets, mixins
+from django.core.exceptions import ValidationError
+from rest_framework import views, viewsets
 from rest_framework.decorators import action
+# from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from .serializers import *
@@ -70,7 +66,7 @@ class ManagerViewSet(viewsets.ModelViewSet, ViewSetMixin):
                 comments = Comment.objects.filter(staff=user.pk)
                 serializer = CommentStaffSerializer(comments, many=True)
 
-                result['data'] = serializer.data
+                result['data'] = self.get_paginated_response(serializer.data)
             else:
                 result['status'] = False
                 result['description'] = "The specified user isn't a manager"
@@ -208,7 +204,8 @@ class WorkerViewSet(viewsets.ModelViewSet, ViewSetMixin):
     @action(
         methods=['patch'],
         detail=True,
-        url_name='worker-update-password'
+        url_name='worker-update-password',
+        url_path='update/password'
     )
     def update_password(self, *args, **kwargs):
         pk = kwargs.get('pk')
@@ -234,6 +231,41 @@ class WorkerViewSet(viewsets.ModelViewSet, ViewSetMixin):
 class ClientViewSet(viewsets.ModelViewSet, ViewSetMixin):
     queryset = Client.objects.all()
 
+    def get_queryset(self):
+        if not self.request.user.is_anonymous:
+            match self.request.user.role:
+                case 'manager':
+                    workers_conversion = self.queryset.filter(
+                        Q(role='worker') &
+                        Q(groups__name='Conversion') &
+                        Q(manager=self.request.user.pk)
+                    )
+
+                    workers_retention = self.queryset.filter(
+                        Q(role='worker') &
+                        Q(groups__name='Retention') &
+                        Q(manager=self.request.user.pk)
+                    )
+
+                    workers_conversion_clients = Client.objects.filter(worker_conversion__in=workers_conversion)
+                    workers_retention_clients = Client.objects.filter(worker_retention__in=workers_retention)
+
+                    self.queryset = workers_conversion_clients | workers_retention_clients
+
+                case 'worker':
+                    worker_filter, worker_type = None, self.recognize_user_type(self.request.user)
+
+                    match worker_type:
+                        case 'conversion':
+                            worker_filter = Q(worker_conversion=self.request.user.pk)
+                        case 'retention':
+                            worker_filter = Q(worker_retention=self.request.user.pk)
+
+                    clients = Client.objects.filter(worker_filter)
+                    self.queryset = clients
+
+        return super(ClientViewSet, self).get_queryset()
+
     def get_serializer_class(self):
         return self.recognize_serializer('client', self.action, self.request.user.role)
 
@@ -241,40 +273,6 @@ class ClientViewSet(viewsets.ModelViewSet, ViewSetMixin):
         self.permission_classes = self.recognize_permissions('client', self.action)
         
         return super(ClientViewSet, self).get_permissions()
-
-    def get_queryset(self):
-        if not self.request.user.is_anonymous:
-            if self.request.user.role == 'manager':
-                workers_conversion = User.objects.filter(
-                    Q(role='worker') &
-                    Q(groups__name='Conversion') &
-                    Q(manager=self.request.user.pk)
-                )
-
-                workers_retention = User.objects.filter(
-                    Q(role='worker') &
-                    Q(groups__name='Retention') &
-                    Q(manager=self.request.user.pk)
-                )
-
-                workers_conversion_clients = Client.objects.filter(worker_conversion__in=workers_conversion)
-                workers_retention_clients = Client.objects.filter(worker_retention__in=workers_retention)
-
-                self.queryset = workers_conversion_clients | workers_retention_clients
-
-            elif self.request.user.role == 'worker':
-                worker_filter, worker_type = None, self.recognize_user_type(self.request.user)
-
-                match worker_type:
-                    case 'conversion':
-                        worker_filter = Q(worker_conversion=self.request.user.pk)
-                    case 'retention':
-                        worker_filter = Q(worker_retention=self.request.user.pk)
-
-                clients = Client.objects.filter(worker_filter)
-                self.queryset = clients
-
-        return super(ClientViewSet, self).get_queryset()
 
     # Endpoint: Client comments
     @action(
@@ -301,13 +299,16 @@ class ClientViewSet(viewsets.ModelViewSet, ViewSetMixin):
     @action(
         methods=['get'],
         detail=True,
-        url_name='client-deposits'
+        url_name='client-deposits',
     )
     def deposits(self, *args, **kwargs):
+        deposits = Deposit.objects.filter(client=kwargs.get('pk'))
+        serializer = DepositSerializer(deposits, many=True)
+
         result = {
             'status': True,
             'description': "Client deposits has been received",
-            'data': {}
+            'data': serializer.data
         }
 
         return Response(result)
@@ -320,10 +321,13 @@ class ClientViewSet(viewsets.ModelViewSet, ViewSetMixin):
 
     )
     def withdraws(self, *args, **kwargs):
+        withdraws = Deposit.objects.filter(client=kwargs.get('pk'))
+        serializer = DepositSerializer(withdraws, many=True)
+
         result = {
             'status': True,
             'description': "Client withdraws has been received",
-            'data': {}
+            'data': serializer.data
         }
 
         return Response(result)
@@ -332,19 +336,140 @@ class ClientViewSet(viewsets.ModelViewSet, ViewSetMixin):
     @action(
         methods=['get'],
         detail=True,
-        url_name='client-workers'
-
+        url_name='client-workers',
     )
     def workers(self, *args, **kwargs):
+        client = Client.objects.get(pk=kwargs.get('pk'))
+
+        serializer_conversion = WorkerSerializer(client.worker_conversion)
+        serializer_retention = WorkerSerializer(client.worker_retention)
+
         result = {
             'status': True,
             'description': "Client workers has been received",
-            'data': {}
+            'data': {
+                'conversion': serializer_conversion.data if client.worker_conversion else None,
+                'retention': serializer_retention.data if client.worker_retention else None
+            }
         }
 
         return Response(result)
 
 
+# Comments
+
+
+class CommentViewSet(viewsets.ModelViewSet, ViewSetMixin):
+    queryset = Comment.objects.all()
+
+    def get_queryset(self):
+        if not self.request.user.is_anonymous:
+            match self.request.user.role:
+                case 'manager' | 'worker':
+                    self.queryset = self.queryset.filter(staff=self.request.user.pk)
+
+        return super(CommentViewSet, self).get_queryset()
+
+    def get_serializer_class(self):
+        return self.recognize_serializer('comment', self.action, self.request.user)
+
+    def get_permissions(self):
+        self.permission_classes = self.recognize_permissions('comment', self.action)
+        return super(CommentViewSet, self).get_permissions()
+
+    def perform_create(self, serializer):
+        serializer.save(staff=self.request.user)
+
+    @action(
+        methods=['get'],
+        detail=True,
+        url_name='comment-client'
+    )
+    def client(self, *args, **kwargs):
+        pk = kwargs.get('pk')
+        result = {
+            'status': True,
+            'description': "Client withdraws has been received",
+            'data': {}
+        }
+
+        try:
+            comment = Comment.objects.get(uid=pk)
+            serializer = ClientSerializer(comment.client)
+
+            result['data'] = serializer.data
+
+        except ValidationError as error:
+            result['status'] = False
+            result['description'] = error.message % error.params
+
+        return Response(result)
+
+
+# - Deposits
+
+
+class DepositViewSet(viewsets.ModelViewSet, ViewSetMixin):
+    queryset = Deposit.objects.all()
+
+    def get_permissions(self):
+        self.permission_classes = self.recognize_permissions('deposit', self.action)
+        return super(DepositViewSet, self).get_permissions()
+
+    def get_serializer_class(self):
+        return self.recognize_serializer('deposit', self.action, self.request.user)
+
+    def get_queryset(self):
+        if not self.request.user.is_anonymous:
+            match self.request.user.role:
+                case 'manager':
+                    workers = User.objects.filter(
+                        Q(role='worker') & (Q(groups__name='Conversion') | Q(groups__name='Retention')) &
+                        Q(manager=self.request.user)
+                    )
+                    clients = Client.objects.filter(Q(worker_conversion__in=workers) | Q(worker_retention__in=workers))
+                    self.queryset = self.queryset.filter(client__in=clients)
+
+                case 'worker':
+                    clients = Client.objects.filter(
+                        Q(worker_conversion=self.request.user) | Q(worker_retention=self.request.user)
+                    )
+                    self.queryset = self.queryset.filter(client__in=clients)
+
+        return super(DepositViewSet, self).get_queryset()
+
+
+# - Withdraws
+
+
+class WithdrawViewSet(viewsets.ModelViewSet, ViewSetMixin):
+    queryset = Withdraw.objects.all()
+
+    def get_queryset(self):
+        if not self.request.user.is_anonymous:
+            match self.request.user.role:
+                case 'manager':
+                    workers = User.objects.filter(
+                        Q(role='worker') & (Q(groups__name='Conversion') | Q(groups__name='Retention')) &
+                        Q(manager=self.request.user)
+                    )
+                    clients = Client.objects.filter(Q(worker_conversion__in=workers) | Q(worker_retention__in=workers))
+                    self.queryset = self.queryset.filter(client__in=clients)
+
+                case 'worker':
+                    clients = Client.objects.filter(
+                        Q(worker_conversion=self.request.user) | Q(worker_retention=self.request.user)
+                    )
+                    self.queryset = self.queryset.filter(client__in=clients)
+
+        return super(WithdrawViewSet, self).get_queryset()
+
+    def get_serializer_class(self):
+        return self.recognize_serializer('withdraw', self.action, self.request.user)
+
+    def get_permissions(self):
+        self.permission_classes = self.recognize_permissions('withdraw', self.action)
+        return super(WithdrawViewSet, self).get_permissions()
 
 
 # --- TEMPORARY --- #
@@ -381,7 +506,6 @@ class CreateRandomObject(views.APIView, RandomDataMixin):
 
         if serializer is not None:
             data = self.random_data(mode, data=request.data)
-            print(data['data'])
 
             if not data['status']:
                 return Response(data)

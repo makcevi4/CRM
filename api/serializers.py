@@ -131,35 +131,37 @@ class ClientSerializer(serializers.ModelSerializer):
     def validate_worker_conversion(self, value):
         request = self.context.get('request')
 
-        if self.instance is not None and value == self.instance.worker_conversion:
-            raise serializers.ValidationError("The specified worker must not match the current one.")
+        if self.instance is not None and request is not None:
+            if value == self.instance.worker_conversion:
+                raise serializers.ValidationError("The specified worker must not match the current one.")
 
-        if value.role != 'worker':
-            raise serializers.ValidationError("The specified user isn't worker.")
+            if value.role != 'worker':
+                raise serializers.ValidationError("The specified user isn't worker.")
 
-        if value.groups.all()[0].name.lower() != 'conversion':
-            raise serializers.ValidationError("The specified worker isn't conversion.")
+            if value.groups.all()[0].name.lower() != 'conversion':
+                raise serializers.ValidationError("The specified worker isn't conversion.")
 
-        if request.user.role == 'manager' and value.manager != request.user:
-            raise serializers.ValidationError("You can't manage another manager's workers.")
+            if request.user.role == 'manager' and value.manager != request.user:
+                raise serializers.ValidationError("You can't manage another manager's workers.")
 
         return value
 
     def validate_worker_retention(self, value):
         request = self.context.get('request')
 
-        if self.instance is not None and value == self.instance.worker_retention:
-            raise serializers.ValidationError("The specified worker must not match the current one.")
+        if request is not None and self.instance is not None:
+            if value == self.instance.worker_retention:
+                raise serializers.ValidationError("The specified worker must not match the current one.")
 
-        if value is not None:
-            if value.role != 'worker':
-                raise serializers.ValidationError("The specified user isn't worker.")
+            if value is not None:
+                if value.role != 'worker':
+                    raise serializers.ValidationError("The specified user isn't worker.")
 
-            if value.groups.all()[0].name.lower() != 'retention':
-                raise serializers.ValidationError("The specified worker isn't retention.")
+                if value.groups.all()[0].name.lower() != 'retention':
+                    raise serializers.ValidationError("The specified worker isn't retention.")
 
-            if request.user.role == 'manager' and value.manager != request.user:
-                raise serializers.ValidationError("You can't manage another manager's workers.")
+                if request.user.role == 'manager' and value.manager != request.user:
+                    raise serializers.ValidationError("You can't manage another manager's workers.")
 
         return value
 
@@ -193,8 +195,24 @@ class DepositSerializer(serializers.ModelSerializer):
         model = Deposit
         fields = '__all__'
 
+    # def validate_client(self, value):
+    #     staff = self.context['request'].user
+    #     print(value.pk)
+    #     if not staff.is_anonymous:
+    #         match staff.role:
+    #             case 'manager':
+    #                 pass
+    #             case' worker':
+    #                 pass
+    #
+    #     return value
+
 
 class WithdrawSerializer(serializers.ModelSerializer):
     class Meta:
         model = Withdraw
         fields = '__all__'
+
+    def validate_client(self, value):
+        print('))))))))))))))))))))))::::', value)
+        return value
