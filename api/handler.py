@@ -40,7 +40,7 @@ class FileHandler:
 
     @staticmethod
     def download(url, filename, filetype=None, filepath='default'):
-        filepath = 'temporary' if filepath == 'default' else filepath
+        filepath = 'tmp' if filepath == 'default' else filepath
         response = requests.get(url)
 
         if filetype is None:

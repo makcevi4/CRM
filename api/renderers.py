@@ -1,6 +1,5 @@
 from rest_framework.renderers import JSONRenderer
 from .utils import RendererMixin
-from .handler import get_choices_list
 
 
 class ApiRenderer(JSONRenderer, RendererMixin):

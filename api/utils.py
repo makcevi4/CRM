@@ -225,7 +225,7 @@ class RandomDataMixin(FileHandler):
 
                 response['data'] = {
                     'name': data.get('name', f"{random_data['name']['first']} {random_data['name']['last']}"),
-                    'photo': ModelFile(open(image_file, 'rb'), name=image_file.replace('temporary/', '')),
+                    'photo': ModelFile(open(image_file, 'rb'), name=image_file.replace('tmp/', '')),
                     'birthday': data.get('birthday', date.today() - timedelta(days=random_data['dob']['age'] * 365)),
                     'status': status,
                     'project': data.get('project', random.choice(get_choices_list('projects')['array'])[0]),

@@ -1,37 +1,34 @@
 {
   "choices": {
     "projects": {
-      "investments":  "Инвестиции",
-      "cloud-solutions":  "Облачные решения",
-      "drainer":  "Дрейнер",
-      "exchanger": "Обменник"
+      "investments":  "Investments",
+      "cloud-solutions":  "Cloud solutions",
+      "drainer":  "Drainer",
+      "exchanger": "Exchanger"
     },
     "clients-statuses": {
-      "completed": "Отработан",
-      "conversion": "В работе (конверсия)",
-      "retention": "В работе (ретеншн)",
-      "rejected": "Срез"
+      "completed": "Completed",
+      "conversion": "Processing (conversion)",
+      "retention": "Processing (retention)",
+      "rejected": "rejected"
     },
     "staff-roles": {
-      "admin": "Администратор",
-      "app": "Приложение",
-      "manager": "Управляющий",
-      "worker": "Рабочий"
+      "admin": "Administrator",
+      "app": "App",
+      "manager": "Manager",
+      "worker": "Worker"
     },
     "workers-types": {
-      "conversion": "Конверсия",
-      "retention": "Ретен"
+      "conversion": "Conversion",
+      "retention": "Retention"
     }
   },
   "permissions": {
     "Manager": [
-      "list_workers",
-      "detail_worker",
-      "update_wor"
+
     ],
     "Conversion": [
-      "view_clients",
-      "view_"
+
     ],
     "Retention": [
 

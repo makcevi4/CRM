@@ -10,10 +10,10 @@ class UserAdmin(admin.ModelAdmin):
     list_display_links = ('username',)
 
     list_filter = (
-        ('role', custom_titled_filter('Тип пользователя')),
-        ('date_joined', custom_titled_filter('Регистрация')),
-        ('last_login', custom_titled_filter('Последний вход')),
-        ('groups', custom_titled_filter('Группы')),
+        ('role', custom_titled_filter('User type')),
+        ('date_joined', custom_titled_filter('Registration')),
+        ('last_login', custom_titled_filter('Last login')),
+        ('groups', custom_titled_filter('Groups')),
     )
     search_fields = ('id', 'username')
     readonly_fields = ('role', 'date_joined', 'last_login')
@@ -25,10 +25,10 @@ class ClientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'picture', 'project', 'status', 'location_country')
     list_display_links = ('id', 'name', 'project')
     list_filter = (
-        ('project', custom_titled_filter('Проект')),
-        ('status', custom_titled_filter('Статус')),
-        ('registration', custom_titled_filter('Дата регистрации')),
-        ('updated', custom_titled_filter('Дата обновления'))
+        ('project', custom_titled_filter('Project')),
+        ('status', custom_titled_filter('Status')),
+        ('registration', custom_titled_filter('Registration date')),
+        ('updated', custom_titled_filter('Updated'))
     )
     list_editable = ('status',)
     search_fields = (
@@ -50,7 +50,7 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('uid', 'client', 'staff')
     list_display_links = ('uid',)
     list_filter = (
-        ('date', custom_titled_filter('Дата создания')),
+        ('date', custom_titled_filter('Created')),
     )
     search_fields = ('client', 'staff')
 
@@ -59,8 +59,8 @@ class DepositAdmin(admin.ModelAdmin):
     list_display = ('uid', 'date', 'sum', 'client')
     list_display_links = ('uid',)
     list_filter = (
-        ('client', custom_titled_filter('Клиент')),
-        ('date', custom_titled_filter('Дата создания'))
+        ('client', custom_titled_filter('Client')),
+        ('date', custom_titled_filter('Created'))
     )
     list_editable = ('sum',)
     search_fields = ('id', 'uid', 'client')
@@ -70,8 +70,8 @@ class WithdrawAdmin(admin.ModelAdmin):
     list_display = ('uid', 'date', 'sum', 'client')
     list_display_links = ('uid',)
     list_filter = (
-        ('client', custom_titled_filter('Клиент')),
-        ('date', custom_titled_filter('Дата создания'))
+        ('client', custom_titled_filter('Client')),
+        ('date', custom_titled_filter('Created'))
     )
     list_editable = ('sum',)
     search_fields = ('id', 'uid', 'client')

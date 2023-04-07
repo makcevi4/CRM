@@ -195,24 +195,9 @@ class DepositSerializer(serializers.ModelSerializer):
         model = Deposit
         fields = '__all__'
 
-    # def validate_client(self, value):
-    #     staff = self.context['request'].user
-    #     print(value.pk)
-    #     if not staff.is_anonymous:
-    #         match staff.role:
-    #             case 'manager':
-    #                 pass
-    #             case' worker':
-    #                 pass
-    #
-    #     return value
-
 
 class WithdrawSerializer(serializers.ModelSerializer):
     class Meta:
         model = Withdraw
         fields = '__all__'
 
-    def validate_client(self, value):
-        print('))))))))))))))))))))))::::', value)
-        return value
